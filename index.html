@@ -360,11 +360,10 @@ const WORKS = {
     videos:[
       {title:"Giulia & Marco", year:"2025", url:"", g:"linear-gradient(135deg,#f3e3d3,#b97c7c)"},
       {title:"Villa sul lago", year:"2024", url:"", g:"linear-gradient(135deg,#cdd8c4,#6d7f63)"}]},
-  spot:{ title:"SPOT", desc:"Spot e video per brand e aziende.",
+  brand:{ title:"BRAND", desc:"Video per marchi e aziende.",
     grad:"linear-gradient(160deg,#2b2b33,#e8523a 75%,#f2a33a)",
     videos:[
-      {title:"Spot — Caffè Aurora", year:"2025", url:"", g:"linear-gradient(135deg,#3b2a1d,#c08a4a)"},
-      {title:"Corporate Story", year:"2024", url:"", g:"linear-gradient(135deg,#1f2a44,#4c6aff)"}]},
+      {title:"Video Brand", year:"", url:"https://player.vimeo.com/video/1237533267?dnt=1", g:"linear-gradient(135deg,#3b2a1d,#e8523a)"}]},
   ai:{ title:"AI VISUALS", desc:"Immagini e video in cui l’intelligenza artificiale spinge l’idea più in là.",
     grad:"linear-gradient(160deg,#0f0c29,#6a4cff 55%,#00d2ff)",
     videos:[
@@ -406,13 +405,13 @@ function go(page,anchor){
   $('ctitle').textContent=w.title; $('cdesc').textContent=w.desc;
   $('vids').innerHTML=w.videos.map((v,i)=>
     `<button class="vid" onclick="openM('${page}',${i})"><div class="thumb" style="background:${v.poster?`url('${v.poster}') ${v.pos||'50% 50%'}/cover`:v.g}"><div class="play"></div></div>
-    <h3>${v.title}</h3><p>${v.year}</p></button>`).join('');
+    <h3>${v.title}${v.link?' ↗':''}</h3><p>${v.year}</p></button>`).join('');
   $('vids').style.display=w.videos.length?'':'none';
   $('gal').innerHTML=(w.photos||[]).map((p,i)=>`<button class="ph" onclick="openP('${page}',${i})"><img src="${p.src}" alt="${p.alt}" loading="lazy">${p.cap?`<span class="cap">${p.cap}</span>`:''}</button>`).join('');
   $('cat').classList.add('on'); scrollTo(0,0);
 }
 function openM(k,i){
-  const v=WORKS[k].videos[i], f=$('frame'); f.className='frame'; $('modal').classList.remove('photo');
+  const v=WORKS[k].videos[i], f=$('frame'); if(v.link){ window.open(v.link,'_blank','noopener'); return; } f.className='frame'; $('modal').classList.remove('photo');
   if(!v.url) f.innerHTML='Segnaposto: aggiungi il link del video nel campo “url” di questo lavoro.';
   else if(/\.(mp4|webm)$/i.test(v.url)||v.url.indexOf('data:video')===0) f.innerHTML=`<video src="${v.url}" controls autoplay playsinline></video>`;
   else if(!consent().media) f.innerHTML='<div>Questo video è ospitato da una piattaforma esterna (YouTube/Vimeo) che può installare cookie.<br><br><button class="cbtn" style="color:#fff;border-color:#fff;max-width:none" onclick="saveC(true,true);openM(\''+k+'\','+i+')">Consenti e guarda il video</button></div>';
