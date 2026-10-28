@@ -241,6 +241,11 @@ nav{flex-wrap:nowrap;gap:12px}
 .hero h1{font-family:Allura,'Brush Script MT',cursive;font-weight:400;text-transform:none;letter-spacing:0;line-height:1.2;font-size:clamp(68px,13vw,170px)}
 @media (max-width:640px){.hero h1{font-size:clamp(58px,19vw,96px)}}
 .ph .cap{display:block;padding:10px 12px 12px;font:300 11px/1.4 Inter,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--mut);text-align:left;background:var(--card)}
+#box .frame.emb{padding:0;background:#000}
+#box iframe{display:block;background:#000;color-scheme:normal}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 120% 90% at 50% 35%,transparent 45%,rgba(0,0,0,.5) 100%)}
+.view,footer{position:relative;z-index:1}
 </style>
 </head>
 <body>
@@ -414,7 +419,7 @@ function openM(k,i){
   else if(/\.(mp4|webm)$/i.test(v.url)||v.url.indexOf('data:video')===0) f.innerHTML=`<video src="${v.url}" controls autoplay playsinline></video>`;
   else if(!consent().media) f.innerHTML='<div>Questo video è ospitato da una piattaforma esterna (YouTube/Vimeo) che può installare cookie.<br><br><button class="cbtn" style="color:#fff;border-color:#fff;max-width:none" onclick="saveC(true,true);openM(\''+k+'\','+i+')">Consenti e guarda il video</button></div>';
   else f.innerHTML=`<iframe src="${v.url}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-  $('mtitle').textContent=v.title+(v.year?' · '+v.year:''); $('modal').classList.add('on');
+  if(f.querySelector('iframe'))f.classList.add('emb'); $('mtitle').textContent=v.title+(v.year?' · '+v.year:''); $('modal').classList.add('on');
 }
 function closeM(){ $('modal').classList.remove('on','photo'); $('frame').innerHTML=''; $('frame').className='frame'; }
 let PH={k:null,i:0};
@@ -437,6 +442,73 @@ function openPrefs(){ $('pmedia').checked=!!consent().media; $('pm').classList.a
 function closePrefs(){ $('pm').classList.remove('on'); }
 if(consent().none) $('cb').classList.add('on');
 addEventListener('keydown',e=>{ if(e.key==='Escape')closeM(); if($('modal').classList.contains('photo')){ if(e.key==='ArrowRight')stepP(1); if(e.key==='ArrowLeft')stepP(-1); } });
+
+/* ===== SFONDO CINEMATOGRAFICO (luci e polvere che reagiscono allo scorrimento) ===== */
+(function(){
+  var cv=document.createElement('canvas'); cv.id='fx'; cv.setAttribute('aria-hidden','true');
+  document.body.insertBefore(cv,document.body.firstChild);
+  var ctx=cv.getContext&&cv.getContext('2d'); if(!ctx) return;
+  var RM=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var S=.6,W=1,H=1,small=false,sc=window.scrollY||0,scT=sc,t=RM?6000:0,P=[],B=[];
+  function rnd(a,b){return a+Math.random()*(b-a)}
+  function mix(a,b,k){return [a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k]}
+  function rgba(c,a){return 'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+a+')'}
+  var C0=[232,194,122],C1=[96,150,196],C2=[236,138,98];
+  function col(p){return p<.5?mix(C0,C1,p*2):mix(C1,C2,(p-.5)*2)}
+  function build(){
+    var i,n=small?38:70,m=small?4:6; P=[]; B=[];
+    for(i=0;i<n;i++){var z=rnd(.25,1);P.push({x:Math.random(),y:Math.random(),z:z,r:rnd(.7,2.3)*z,vy:rnd(4,11)*z,dx:rnd(-4,4)*z,tw:rnd(.6,2),ph:rnd(0,6.28)})}
+    for(i=0;i<m;i++)B.push({x:Math.random(),y:Math.random(),r:rnd(.08,.17),f:rnd(.1,.35),a:rnd(.05,.1)});
+  }
+  function size(){small=innerWidth<640;W=cv.width=Math.max(1,Math.ceil(innerWidth*S));H=cv.height=Math.max(1,Math.ceil(innerHeight*S));build();}
+  function beam(ox,oy,ang,spread,len,c,a){
+    for(var k=0;k<6;k++){
+      var sp=spread*(.55+k*.5),al=a*.34*Math.pow(.8,k);
+      var g=ctx.createLinearGradient(ox,oy,ox+Math.cos(ang)*len,oy+Math.sin(ang)*len);
+      g.addColorStop(0,rgba(c,al));g.addColorStop(.55,rgba(c,al*.35));g.addColorStop(1,rgba(c,0));
+      ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(ox,oy);
+      ctx.lineTo(ox+Math.cos(ang-sp)*len,oy+Math.sin(ang-sp)*len);
+      ctx.lineTo(ox+Math.cos(ang+sp)*len,oy+Math.sin(ang+sp)*len);
+      ctx.closePath();ctx.fill();
+    }
+  }
+  function draw(){
+    var de=document.documentElement,max=Math.max(1,de.scrollHeight-innerHeight),p=Math.min(1,Math.max(0,scT/max));
+    var c=col(p),i,L=Math.hypot(W,H)*1.25,pulse=.6+.4*Math.sin(p*9+t*.0003);
+    ctx.globalCompositeOperation='source-over'; ctx.clearRect(0,0,W,H); ctx.globalCompositeOperation='lighter';
+    var pt=H>W, gk=pt?1.5:1;
+    beam(-W*.12,-H*.1,(pt?1.12:.62)+(p-.5)*.55+Math.sin(t*.00017)*.05,pt?.11:.075,L,c,.22*pulse*gk);
+    beam(W*1.1,-H*.15,(pt?2.0:2.5)-(p-.5)*.45+Math.sin(t*.00021+2)*.05,pt?.09:.06,L,mix(c,[255,255,255],.35),.12*(1.1-pulse*.5)*gk);
+    var mb=H*1.4,R=Math.max(W,H);
+    for(i=0;i<B.length;i++){
+      var b=B[i],bc=i%2?mix(c,[255,255,255],.4):c;
+      var by=((((b.y*mb-scT*S*b.f)%mb)+mb)%mb)-H*.2, bx=b.x*W+Math.sin(t*.0002+i)*W*.03, br=b.r*R*.8;
+      var g=ctx.createRadialGradient(bx,by,0,bx,by,br);
+      g.addColorStop(0,rgba(bc,b.a));g.addColorStop(1,rgba(bc,0));
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(bx,by,br,0,6.2832);ctx.fill();
+    }
+    var m2=H+30,pc=mix(c,[255,240,210],.5);
+    for(i=0;i<P.length;i++){
+      var q=P[i];
+      var y=((((q.y*m2-q.vy*S*t/1000-scT*S*q.z*.55)%m2)+m2)%m2)-15;
+      var x=((((q.x*W+q.dx*S*t/1000+Math.sin(t*.0005*q.tw+q.ph)*6*q.z)%W)+W)%W);
+      var a=(.25+.55*(.5+.5*Math.sin(t*.001*q.tw+q.ph)))*q.z;
+      ctx.fillStyle=rgba(pc,a*.16);ctx.beginPath();ctx.arc(x,y,q.r*S*4.5,0,6.2832);ctx.fill();
+      ctx.fillStyle=rgba(pc,a);ctx.beginPath();ctx.arc(x,y,Math.max(.6,q.r*S*1.1),0,6.2832);ctx.fill();
+    }
+  }
+  function modalOpen(){var m=document.getElementById('modal');return !!(m&&m.classList.contains('on'))}
+  function frame(ts){
+    requestAnimationFrame(frame);
+    if(document.hidden||modalOpen())return;
+    scT+=(sc-scT)*.09; t=ts; draw();
+  }
+  addEventListener('scroll',function(){sc=window.scrollY||0; if(RM){scT=sc;requestAnimationFrame(draw)}},{passive:true});
+  addEventListener('resize',function(){size(); if(RM)draw()});
+  size();
+  if(RM){draw()}else{requestAnimationFrame(frame)}
+  window.__fx={draw:draw,set:function(s,tt){sc=scT=s;t=tt;}};
+})();
 </script>
 </body>
 </html>
