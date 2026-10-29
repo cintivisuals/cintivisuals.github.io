@@ -243,7 +243,7 @@ nav{flex-wrap:nowrap;gap:12px}
 .ph .cap{display:block;padding:10px 12px 12px;font:300 11px/1.4 Inter,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--mut);text-align:left;background:var(--card)}
 #box .frame.emb{padding:0;background:#000}
 #box iframe{display:block;background:#000;color-scheme:normal}
-#fx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+#fx{position:fixed;top:0;left:0;width:100%;height:100%;height:100lvh;z-index:0;pointer-events:none;transform:translateZ(0)}
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 120% 90% at 50% 35%,transparent 45%,rgba(0,0,0,.5) 100%)}
 .view,footer{position:relative;z-index:1}
 </style>
@@ -368,7 +368,7 @@ const WORKS = {
   brand:{ title:"BRAND", desc:"Video per marchi e aziende.",
     grad:"linear-gradient(160deg,#2b2b33,#e8523a 75%,#f2a33a)",
     videos:[
-      {title:"Video Brand", year:"", url:"https://player.vimeo.com/video/1237533267?dnt=1", g:"linear-gradient(135deg,#3b2a1d,#e8523a)"}]},
+      {title:"SARDEGNA 2026 ERREZETA EVENTS", year:"", url:"https://player.vimeo.com/video/1237533267?dnt=1", g:"linear-gradient(135deg,#3b2a1d,#e8523a)"}]},
   ai:{ title:"AI VISUALS", desc:"Immagini e video in cui l’intelligenza artificiale spinge l’idea più in là.",
     grad:"linear-gradient(160deg,#0f0c29,#6a4cff 55%,#00d2ff)",
     videos:[
@@ -455,7 +455,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape')closeM(); if($('modal').clas
   document.body.insertBefore(cv,document.body.firstChild);
   var ctx=cv.getContext&&cv.getContext('2d'); if(!ctx) return;
   var RM=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
-  var S=.7,W=1,H=1,small=false,sc=window.scrollY||0,scT=sc,vel=0,vs=0,t=RM?6000:0,last=0,P=[],B=[];
+  var S=innerWidth<640?.5:.7,W=1,H=1,small=false,sc=window.scrollY||0,scT=sc,vel=0,vs=0,t=RM?6000:0,last=0,P=[],B=[];
   function rnd(a,b){return a+Math.random()*(b-a)}
   function mix(a,b,k){return [a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k]}
   function rgba(c,a){return 'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+a+')'}
@@ -471,22 +471,27 @@ addEventListener('keydown',e=>{ if(e.key==='Escape')closeM(); if($('modal').clas
     var n=s.width,cc=document.createElement('canvas');cc.width=cc.height=n;var g=cc.getContext('2d');g.drawImage(s,0,0);g.globalCompositeOperation='source-in';g.fillStyle=rgba(c,1);g.fillRect(0,0,n,n);
     TG[key]=cc;var ks=Object.keys(TG);if(ks.length>90)delete TG[ks[0]];return cc}
   function build(){
-    var i,n=small?44:90,m=small?6:10; P=[]; B=[];
+    var i,n=small?34:90,m=small?5:10; P=[]; B=[];
     for(i=0;i<n;i++){var z=rnd(.2,1);P.push({x:Math.random(),y:Math.random(),z:z,r:rnd(.8,2.4)*z,vy:rnd(3,9)*z,dx:rnd(-5,5)*z,tw:rnd(.5,1.8),ph:rnd(0,6.28)})}
     for(i=0;i<m;i++){var zb=rnd(.3,1);B.push({x:Math.random(),y:Math.random(),z:zb,r:rnd(.035,.09)*zb+.02,f:.12+zb*.5,a:rnd(.06,.14),ph:rnd(0,6.28),w:rnd(.08,.22)})}
   }
-  function size(){small=innerWidth<640;W=cv.width=Math.max(1,Math.ceil(innerWidth*S));H=cv.height=Math.max(1,Math.ceil(innerHeight*S));build();}
-  function beam(ox,oy,ang,spread,len,c,a){
-    /* fascio morbido a 10 strati con bordi sfumati (volumetrico) */
-    for(var k=0;k<10;k++){
-      var sp=spread*(.3+k*.34),al=a*.2*Math.pow(.82,k);
-      var g=ctx.createLinearGradient(ox,oy,ox+Math.cos(ang)*len,oy+Math.sin(ang)*len);
-      g.addColorStop(0,rgba(c,al));g.addColorStop(.4,rgba(c,al*.55));g.addColorStop(1,rgba(c,0));
-      ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(ox,oy);
-      ctx.lineTo(ox+Math.cos(ang-sp)*len,oy+Math.sin(ang-sp)*len);
-      ctx.lineTo(ox+Math.cos(ang+sp)*len,oy+Math.sin(ang+sp)*len);
-      ctx.closePath();ctx.fill();
+  var lw=0;
+  function size(){small=innerWidth<640;S=small?.5:.7;lw=innerWidth;W=cv.width=Math.max(1,Math.ceil(innerWidth*S));H=cv.height=Math.max(1,Math.ceil(innerHeight*S));build();}
+  /* fascio pre-renderizzato (10 strati) in sprite colorati, disegnato con rotazione/scala: costo minimo anche su telefono */
+  var BS={};
+  function beamSprite(c,key){
+    var k=key+((c[0]/8)|0)+'_'+((c[1]/8)|0)+'_'+((c[2]/8)|0),o=BS[k]; if(o)return o;
+    var n=256,cc=document.createElement('canvas'); cc.width=cc.height=n; var g=cc.getContext('2d'),u=.1;
+    for(var j=0;j<10;j++){
+      var sp=u*(.3+j*.34),al=.2*Math.pow(.82,j),gr=g.createLinearGradient(0,0,n,0);
+      gr.addColorStop(0,rgba(c,al));gr.addColorStop(.4,rgba(c,al*.55));gr.addColorStop(1,rgba(c,0));
+      g.fillStyle=gr;g.beginPath();g.moveTo(0,n/2);g.lineTo(n,n/2-n*Math.tan(sp));g.lineTo(n,n/2+n*Math.tan(sp));g.closePath();g.fill();
     }
+    BS[k]=cc; var ks=Object.keys(BS); if(ks.length>40)delete BS[ks[0]]; return cc;
+  }
+  function beam(ox,oy,ang,spread,len,c,a,key){
+    ctx.save();ctx.translate(ox,oy);ctx.rotate(ang);ctx.scale(len/256,len/256*(spread/.1));
+    ctx.globalAlpha=Math.min(1,a);ctx.drawImage(beamSprite(c,key),0,-128);ctx.restore();
   }
   function draw(){
     var de=document.documentElement,max=Math.max(1,de.scrollHeight-innerHeight),p=Math.min(1,Math.max(0,scT/max));
@@ -494,8 +499,8 @@ addEventListener('keydown',e=>{ if(e.key==='Escape')closeM(); if($('modal').clas
     ctx.globalCompositeOperation='source-over'; ctx.clearRect(0,0,W,H); ctx.globalCompositeOperation='lighter';
     var pt=H>W, gk=pt?1.5:1, boost=1+v*.9;
     /* i fasci ondeggiano con lo scroll e si "accendono" quando si scorre veloce */
-    beam(-W*.12,-H*.1,(pt?1.12:.62)+(p-.5)*.6+vs*.00004+Math.sin(t*.00013)*.06,(pt?.11:.075)*(1+v*.35),L,c,.2*breath*gk*boost);
-    beam(W*1.1,-H*.15,(pt?2.0:2.5)-(p-.5)*.5-vs*.00003+Math.sin(t*.00017+2)*.06,(pt?.09:.06)*(1+v*.3),L,mix(c,[255,255,255],.35),.11*(1.15-breath*.5)*gk*boost);
+    beam(-W*.12,-H*.1,(pt?1.12:.62)+(p-.5)*.6+vs*.00004+Math.sin(t*.00013)*.06,(pt?.11:.075)*(1+v*.35),L,c,.2*breath*gk*boost,'a');
+    beam(W*1.1,-H*.15,(pt?2.0:2.5)-(p-.5)*.5-vs*.00003+Math.sin(t*.00017+2)*.06,(pt?.09:.06)*(1+v*.3),L,mix(c,[255,255,255],.35),.11*(1.15-breath*.5)*gk*boost,'b');
     /* bokeh con bordo luminoso, in parallasse */
     var mb=H*1.5,R=Math.max(W,H);
     for(i=0;i<B.length;i++){
@@ -533,7 +538,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape')closeM(); if($('modal').clas
     t=ts; draw();
   }
   addEventListener('scroll',function(){sc=window.scrollY||0; if(RM){scT=sc;requestAnimationFrame(draw)}},{passive:true});
-  addEventListener('resize',function(){size(); if(RM)draw()});
+  addEventListener('resize',function(){if(innerWidth===lw)return; size(); if(RM)draw()});
   size();
   if(RM){draw()}else{requestAnimationFrame(frame)}
   window.__fx={draw:draw,set:function(s,tt){sc=scT=s;t=tt;}};
